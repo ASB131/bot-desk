@@ -15,7 +15,7 @@ from PIL import Image
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.templating import Jinja2Templates
 
-from app.bot_client import invite_url, refresh_channels
+from app.bot_client import bot, invite_url, refresh_channels
 from app.config import get_settings
 from app.db import EventRow, get_db
 from app.activity import log_activity
@@ -226,6 +226,8 @@ def create_app() -> FastAPI:
     @app.get("/events")
     async def events_page(request: Request):
         _require(request)
+        if bot.is_ready():
+            await refresh_channels(force=True)
         editing = None
         raw_id = request.query_params.get("edit", "")
         if raw_id.isdigit():

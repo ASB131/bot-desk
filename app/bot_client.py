@@ -38,7 +38,18 @@ class DeskBot(commands.Bot):
 
     async def on_guild_join(self, guild: discord.Guild) -> None:
         await self.sync_one(guild)
-        await refresh_channels()
+        await refresh_channels(force=True)
+
+    async def on_guild_channel_create(self, channel: discord.abc.GuildChannel) -> None:
+        await refresh_channels(force=True)
+
+    async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel) -> None:
+        await refresh_channels(force=True)
+
+    async def on_guild_channel_update(
+        self, before: discord.abc.GuildChannel, after: discord.abc.GuildChannel
+    ) -> None:
+        await refresh_channels(force=True)
 
     async def on_message(self, message: discord.Message) -> None:
         await self.process_commands(message)
@@ -98,6 +109,7 @@ class DeskBot(commands.Bot):
 
 bot = DeskBot()
 _commands_attached = False
+_last_channel_refresh = 0.0
 
 
 def ensure_commands() -> None:
@@ -120,15 +132,32 @@ def invite_url() -> str:
     )
 
 
-async def refresh_channels() -> None:
+async def refresh_channels(*, force: bool = False) -> None:
+    global _last_channel_refresh
     if not bot.is_ready() or bot.user is None:
         return
+    now = time.monotonic()
+    if not force and now - _last_channel_refresh < 20:
+        return
+    _last_channel_refresh = now
     choices: list[ChannelChoice] = []
     guilds: list[GuildSummary] = []
     for guild in bot.guilds:
         me = guild.me
+        if me is None and bot.user is not None:
+            try:
+                me = await guild.fetch_member(bot.user.id)
+            except discord.HTTPException:
+                me = None
+        try:
+            raw_channels = await guild.fetch_channels()
+        except discord.HTTPException:
+            log.warning("Could not fetch channels for %s; using cache", guild.name)
+            raw_channels = list(guild.channels)
         postable = 0
-        for channel in guild.text_channels:
+        for channel in raw_channels:
+            if not isinstance(channel, discord.TextChannel):
+                continue
             if me is not None and not channel.permissions_for(me).send_messages:
                 continue
             postable += 1
