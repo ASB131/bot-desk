@@ -40,9 +40,19 @@
       Channel
       <select name="channel_id">
         <option value="">Choose a channel</option>
+        {% if status.guilds|length > 1 %}
+        {% for guild in status.guilds %}
+        <optgroup label="{{ guild.name }}">
+          {% for channel in channels if channel.guild_id == guild.id %}
+          <option value="{{ channel.id }}" {% if form.channel_id == channel.id %}selected{% endif %}>#{{ channel.channel_name }}</option>
+          {% endfor %}
+        </optgroup>
+        {% endfor %}
+        {% else %}
         {% for channel in channels %}
         <option value="{{ channel.id }}" {% if form.channel_id == channel.id %}selected{% endif %}>{{ channel.label }}</option>
         {% endfor %}
+        {% endif %}
       </select>
     </label>
     <label>

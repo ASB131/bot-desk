@@ -38,11 +38,15 @@
       {% if status.guilds %}
       <form method="post" action="/server" class="server-form">
         <input type="hidden" name="csrf" value="{{ csrf }}">
-        <select name="guild_id" aria-label="Server" onchange="this.form.submit()">
-          {% for guild in status.guilds %}
-          <option value="{{ guild.id }}" {% if guild.id == active_guild_id %}selected{% endif %}>{{ guild.name }}</option>
-          {% endfor %}
-        </select>
+        <input type="hidden" name="next" value="{{ path }}">
+        <label class="server-picker">
+          <span class="sr-only">Discord server</span>
+          <select name="guild_id" aria-label="Discord server to edit" onchange="this.form.submit()">
+            {% for guild in status.guilds %}
+            <option value="{{ guild.id }}" {% if guild.id == active_guild_id %}selected{% endif %}>{{ guild.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
       </form>
       {% endif %}
       <span class="status-line"><span class="dot {% if status.online %}on{% endif %}"></span></span>
@@ -57,7 +61,7 @@
   <main class="page-wrap">
     <p id="clock" data-timezone="{{ tz_name }}">{{ tz_name }}</p>
     {% if status.guilds %}
-    <p class="muted">Settings for <strong>{{ active_guild_name }}</strong>. Events, facts, scheduled pictures, and reactions are per server. Library images are shared.</p>
+    <p class="muted">Editing server: <strong>{{ active_guild_name }}</strong> — use the server menu in the header to switch. Events, facts, scheduled pictures, and reactions are saved per server. Library images are shared.</p>
     {% endif %}
     {% if flash %}
     <p class="flash {{ flash.level }}" role="status">{{ flash.text }}</p>

@@ -155,11 +155,20 @@ def create_app() -> FastAPI:
         return RedirectResponse("/login", status_code=303)
 
     @app.post("/server")
-    async def choose_server(request: Request, csrf: str = Form(""), guild_id: str = Form("")):
+    async def choose_server(
+        request: Request,
+        csrf: str = Form(""),
+        guild_id: str = Form(""),
+        next: str = Form("/"),
+    ):
         _require(request)
         _check_csrf(request, csrf)
         from app.logic import clean_guild_id
 
+        dest = _safe_redirect_path(next)
+        if not dest:
+            referer = request.headers.get("referer", "") or ""
+            dest = _safe_redirect_path(referer) or "/"
         try:
             cleaned = clean_guild_id(guild_id)
         except ValueError as exc:
@@ -171,8 +180,10 @@ def create_app() -> FastAPI:
             else:
                 request.session["guild_id"] = cleaned
                 name = next((g.name for g in state.guilds if g.id == cleaned), cleaned)
-                request.session["flash"] = {"level": "ok", "text": f"Editing settings for {name}."}
-        return RedirectResponse(request.headers.get("referer", "/") or "/", status_code=303)
+                request.session["flash"] = {"level": "ok", "text": f"Now editing {name}."}
+                if bot.is_ready():
+                    await refresh_channels(force=True)
+        return RedirectResponse(dest, status_code=303)
 
     @app.get("/")
     async def dashboard(request: Request):
@@ -1025,6 +1036,14 @@ def _render(request: Request, name: str, context: dict):
     if params and params[0] == "request":
         return templates.TemplateResponse(request, name, payload)
     return templates.TemplateResponse(name, payload)
+
+
+def _safe_redirect_path(raw: str) -> str:
+    target = (raw or "").strip()
+    if not target.startswith("/") or target.startswith("//"):
+        return ""
+    path = target.split("?", 1)[0].split("#", 1)[0]
+    return path or "/"
 
 
 def _logged_in(request: Request) -> bool:
