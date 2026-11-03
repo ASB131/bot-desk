@@ -794,7 +794,8 @@ def _events(request: Request, form: dict, editing: int | None):
         form=form,
         rows=rows,
         images=database.list_images(),
-        channels=_guild_channels(guild_id),
+        channels=_all_postable_channels(),
+        channels_for_active_guild=len(_guild_channels(guild_id)),
         editing=editing,
         recurrence_choices=RECURRENCE_CHOICES,
     )
@@ -843,6 +844,17 @@ def _guild_channel_ids(guild_id: str) -> set[str]:
     return {channel.id for channel in _guild_channels(guild_id)}
 
 
+def _all_postable_channels() -> list:
+    return list(state.channels)
+
+
+def _guild_id_for_channel(channel_id: str) -> str | None:
+    for channel in state.channels:
+        if channel.id == channel_id:
+            return channel.guild_id
+    return None
+
+
 def _active_guild_name(guild_id: str) -> str:
     for guild in state.guilds:
         if guild.id == guild_id:
@@ -859,12 +871,21 @@ def _event_payload(form: dict, guild_id: str) -> dict:
         raise ValueError("Add a message or choose a picture to post.")
     chosen = form.get("channel_override", "").strip() or form.get("channel_id", "").strip()
     channel_id = clean_channel_id(chosen)
-    allowed = _guild_channel_ids(guild_id)
-    if state.guilds:
+    known_ids = {channel.id for channel in state.channels}
+    resolved_guild = _guild_id_for_channel(channel_id)
+    if resolved_guild:
+        guild_id = resolved_guild
+    elif state.guilds:
         if not guild_id:
             raise ValueError("Choose which server you are configuring (use the server menu).")
+        if channel_id in known_ids:
+            raise ValueError("Choose a channel the bot can post in.")
+        allowed = _guild_channel_ids(guild_id)
         if allowed and channel_id not in allowed:
-            raise ValueError("Choose a channel in the selected server.")
+            raise ValueError(
+                "That channel is not in the list for the selected server. "
+                "Pick a channel from the dropdown or check bot permissions."
+            )
     elif not guild_id:
         guild_id = ""
     return {
