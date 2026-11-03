@@ -36,25 +36,8 @@
       </select>
     </label>
     <p class="muted">Yearly keeps the same month and day (e.g. 25 Dec every year). After each run the next date is scheduled automatically.</p>
-    <label>
-      Channel
-      <select name="channel_id">
-        <option value="">Choose a channel</option>
-        {% if status.guilds|length > 1 %}
-        {% for guild in status.guilds %}
-        <optgroup label="{{ guild.name }}">
-          {% for channel in channels if channel.guild_id == guild.id %}
-          <option value="{{ channel.id }}" {% if form.channel_id == channel.id %}selected{% endif %}>#{{ channel.channel_name }}</option>
-          {% endfor %}
-        </optgroup>
-        {% endfor %}
-        {% else %}
-        {% for channel in channels %}
-        <option value="{{ channel.id }}" {% if form.channel_id == channel.id %}selected{% endif %}>{{ channel.label }}</option>
-        {% endfor %}
-        {% endif %}
-      </select>
-    </label>
+    {% set channel_pick = form.channel_id %}
+    {% include "includes/channel_select.html" %}
     <label>
       Or paste a channel ID
       <input name="channel_override" value="{{ form.channel_override }}" inputmode="numeric" autocomplete="off" placeholder="Used for threads, or when the bot is offline">

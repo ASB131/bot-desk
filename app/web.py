@@ -553,6 +553,8 @@ def create_app() -> FastAPI:
     @app.get("/facts")
     async def facts_page(request: Request):
         _require(request)
+        if bot.is_ready():
+            await refresh_channels(force=True)
         database = get_db()
         guild_id = _active_guild_id(request)
         config = database.get_facts_config(guild_id)
@@ -572,7 +574,7 @@ def create_app() -> FastAPI:
             "facts.html",
             config=config,
             facts=database.list_facts(guild_id),
-            channels=_guild_channels(guild_id),
+            channels=_all_postable_channels(),
             channel_pick=channel_pick,
             channel_override=channel_override,
             next_label=next_label,
@@ -600,8 +602,10 @@ def create_app() -> FastAPI:
             on = enabled == "1"
             channel = clean_channel_id(chosen) if on else ""
             low, high = clean_interval_minutes(int(min_minutes), int(max_minutes))
+            guild_id = _schedule_guild_id(request, channel if on else "")
+            _validate_schedule_channel(channel if on else "", guild_id)
             get_db().save_facts_config(
-                _active_guild_id(request),
+                guild_id,
                 enabled=on,
                 channel_id=channel,
                 min_minutes=low,
@@ -609,6 +613,7 @@ def create_app() -> FastAPI:
                 attach_library_image=attach_library == "1",
                 reschedule=on and reset_next == "1",
             )
+            _sync_session_guild(request, guild_id)
         except ValueError as exc:
             request.session["flash"] = {"level": "error", "text": str(exc)}
             return RedirectResponse("/facts", status_code=303)
@@ -676,6 +681,8 @@ def create_app() -> FastAPI:
     @app.get("/scheduled-pictures")
     async def scheduled_pictures_page(request: Request):
         _require(request)
+        if bot.is_ready():
+            await refresh_channels(force=True)
         database = get_db()
         guild_id = _active_guild_id(request)
         config = database.get_scheduled_pictures_config(guild_id)
@@ -691,7 +698,7 @@ def create_app() -> FastAPI:
             request,
             "scheduled_pictures.html",
             config=config,
-            channels=_guild_channels(guild_id),
+            channels=_all_postable_channels(),
             channel_pick=channel_pick,
             channel_override=channel_override,
             next_label=next_label,
@@ -718,14 +725,17 @@ def create_app() -> FastAPI:
             on = enabled == "1"
             channel = clean_channel_id(chosen) if on else ""
             low, high = clean_interval_minutes(int(min_minutes), int(max_minutes))
+            guild_id = _schedule_guild_id(request, channel if on else "")
+            _validate_schedule_channel(channel if on else "", guild_id)
             get_db().save_scheduled_pictures_config(
-                _active_guild_id(request),
+                guild_id,
                 enabled=on,
                 channel_id=channel,
                 min_minutes=low,
                 max_minutes=high,
                 reschedule=on and reset_next == "1",
             )
+            _sync_session_guild(request, guild_id)
         except ValueError as exc:
             request.session["flash"] = {"level": "error", "text": str(exc)}
             return RedirectResponse("/scheduled-pictures", status_code=303)
@@ -864,6 +874,30 @@ def _guild_id_for_channel(channel_id: str) -> str | None:
         if channel.id == channel_id:
             return channel.guild_id
     return None
+
+
+def _schedule_guild_id(request: Request, channel_id: str) -> str:
+    if channel_id:
+        resolved = _guild_id_for_channel(channel_id)
+        if resolved:
+            return resolved
+    return _active_guild_id(request)
+
+
+def _validate_schedule_channel(channel_id: str, guild_id: str) -> None:
+    if not channel_id:
+        return
+    if channel_id in {channel.id for channel in state.channels}:
+        return
+    allowed = _guild_channel_ids(guild_id)
+    if state.guilds and allowed and channel_id not in allowed:
+        raise ValueError("Choose a channel from the list or check bot permissions in that server.")
+
+
+def _sync_session_guild(request: Request, guild_id: str) -> None:
+    valid = {guild.id for guild in state.guilds}
+    if guild_id and guild_id in valid:
+        request.session["guild_id"] = guild_id
 
 
 def _active_guild_name(guild_id: str) -> str:

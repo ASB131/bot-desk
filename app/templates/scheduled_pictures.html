@@ -4,10 +4,13 @@
 <section class="page-head">
   <h1>Scheduled pictures</h1>
   <p class="muted">Post one random image from the shared <a href="/library">Library</a> on a timer. Each picture is used once before any repeat—the same shuffle deck as <code>/picture</code> and facts attachments.</p>
+  {% if status.guilds|length > 1 %}
+  <p class="muted">Timer settings are for <strong>{{ active_guild_name }}</strong> (header menu). The channel dropdown lists every server.</p>
+  {% endif %}
 </section>
 
 <section class="card">
-  <h2>Schedule</h2>
+  <h2>Schedule for {{ active_guild_name }}</h2>
   {% if config.last_error %}<p class="warn">{{ config.last_error }}</p>{% endif %}
   {% if library_count == 0 %}
   <p class="warn">The library is empty. <a href="/library">Upload pictures</a> before enabling this.</p>
@@ -20,15 +23,7 @@
       <input type="checkbox" name="enabled" value="1" {% if config.enabled %}checked{% endif %}>
       Enabled
     </label>
-    <label>
-      Channel
-      <select name="channel_id">
-        <option value="">Choose a channel</option>
-        {% for channel in channels %}
-        <option value="{{ channel.id }}" {% if channel_pick == channel.id %}selected{% endif %}>{{ channel.label }}</option>
-        {% endfor %}
-      </select>
-    </label>
+    {% include "includes/channel_select.html" %}
     <label>
       Or channel ID
       <input name="channel_override" value="{{ channel_override }}" inputmode="numeric" autocomplete="off">
