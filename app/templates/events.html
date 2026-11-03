@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Events · Bot desk{% endblock %}
+{% block body %}
+<section class="card">
+  <h1>{% if editing %}Edit event{% else %}Schedule an event{% endif %}</h1>
+  <p class="muted">Times use {{ tz_name }}. Main post: <code>{name}</code>, <code>{time}</code>, <code>{countdown}</code>. Daily posts: <code>{days}</code>, <code>{name}</code>.</p>
+  <form method="post" action="/events" class="fields">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="event_id" value="{{ form.event_id }}">
+    <label>
+      Name
+      <input name="name" value="{{ form.name }}" maxlength="80" required>
+    </label>
+    <label>
+      When
+      <input type="datetime-local" name="starts_at" value="{{ form.starts_at }}" required>
+    </label>
+    <label>
+      Repeats
+      <select name="recurrence">
+        {% for value in recurrence_choices %}
+        <option value="{{ value }}" {% if form.recurrence == value %}selected{% endif %}>{{ recurrence_labels[value] }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <p class="muted">Yearly keeps the same month and day (e.g. 25 Dec every year). After each run the next date is scheduled automatically.</p>
+    <label>
+      Channel
+      <select name="channel_id">
+        <option value="">Choose a channel</option>
+        {% for channel in channels %}
+        <option value="{{ channel.id }}" {% if form.channel_id == channel.id %}selected{% endif %}>{{ channel.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Or paste a channel ID
+      <input name="channel_override" value="{{ form.channel_override }}" inputmode="numeric" autocomplete="off" placeholder="Used for threads, or when the bot is offline">
+    </label>
+    <label>
+      Message at event time
+      <textarea name="message" rows="3" maxlength="1800" placeholder="**{name}** is starting now.">{{ form.message }}</textarea>
+    </label>
+    <div class="split">
+      <label>
+        Picture to post
+        <select name="image_id">
+          <option value="">No picture</option>
+          {% for image in images %}
+          <option value="{{ image.id }}" {% if form.image_id == image.id|string %}selected{% endif %}>{{ image.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Profile photo at start
+        <select name="pfp_image_id">
+          <option value="">Leave the photo as it is</option>
+          {% for image in images %}
+          <option value="{{ image.id }}" {% if form.pfp_image_id == image.id|string %}selected{% endif %}>{{ image.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+    <h2>Daily countdown posts</h2>
+    <p class="muted">Once per day at the event’s hour and minute, the bot sends a separate message (not the live-edited countdown below).</p>
+    <div class="split">
+      <label>
+        Days before (0 = off)
+        <input type="number" name="daily_before_days" min="0" max="366" value="{{ form.daily_before_days }}">
+      </label>
+      <label>
+        Days after (0 = off)
+        <input type="number" name="daily_after_days" min="0" max="366" value="{{ form.daily_after_days }}">
+      </label>
+    </div>
+    <label>
+      Message before
+      <input name="daily_before_message" value="{{ form.daily_before_message }}" maxlength="500">
+    </label>
+    <label>
+      Message after
+      <input name="daily_after_message" value="{{ form.daily_after_message }}" maxlength="500">
+    </label>
+    <label class="check">
+      <input type="checkbox" name="countdown" value="1" {% if form.countdown %}checked{% endif %}>
+      Also keep one live countdown message updated every minute in that channel
+    </label>
+    <label class="check">
+      <input type="checkbox" name="allow_pings" value="1" {% if form.allow_pings %}checked{% endif %}>
+      Allow @everyone and @here in the main event message
+    </label>
+    <div class="actions">
+      <button type="submit">{% if editing %}Save changes{% else %}Schedule{% endif %}</button>
+      {% if editing %}<a class="button quiet" href="/events">Cancel</a>{% endif %}
+    </div>
+  </form>
+</section>
+
+<section>
+  <h2>Scheduled</h2>
+  {% if not rows %}
+  <p class="muted">No events yet.</p>
+  {% else %}
+  <div class="stack">
+    {% for row in rows %}
+    <article class="card row-card">
+      <div>
+        <p class="label">{{ row.status }} · {{ row.recurrence }}</p>
+        <h3>{{ row.event.name }}</h3>
+        <p>{{ row.when }}</p>
+        {% if row.status == 'Scheduled' or row.status == 'Due' or row.status == 'Retrying' %}
+        <p class="countdown-lg" data-countdown="{{ row.iso }}">…</p>
+        {% endif %}
+        <p class="muted">Channel {{ row.event.channel_id }}{% if row.event.image_name %} · posts {{ row.event.image_name }}{% endif %}{% if row.event.pfp_name %} · photo {{ row.event.pfp_name }}{% endif %}</p>
+        {% if row.event.daily_before_days %}<p class="muted">Daily before: {{ row.event.daily_before_days }} days</p>{% endif %}
+        {% if row.event.daily_after_days %}<p class="muted">Daily after: {{ row.event.daily_after_days }} days</p>{% endif %}
+        {% if row.event.message %}<p class="message">{{ row.event.message }}</p>{% endif %}
+        {% if row.event.last_error %}<p class="warn">{{ row.event.last_error }}</p>{% endif %}
+      </div>
+      <div class="actions">
+        <a class="button quiet" href="/events?edit={{ row.event.id }}">Edit</a>
+        <form method="post" action="/events/{{ row.event.id }}/preview">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="quiet" type="submit">Post preview</button>
+        </form>
+        <form method="post" action="/events/{{ row.event.id }}/delete" data-confirm="Remove this event?">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="danger" type="submit">Delete</button>
+        </form>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <p class="muted foot">If the bot is offline when an event starts, it still posts as long as it comes back within 12 hours. After that the event is marked missed.</p>
+</section>
+{% endblock %}

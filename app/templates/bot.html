@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Commands · Bot desk{% endblock %}
+{% block body %}
+<section class="page-head">
+  <h1>Slash commands</h1>
+  <p class="muted">Rename the random-picture command (e.g. <code>picture</code> → <code>image</code>). Discord may take up to a minute to update.</p>
+</section>
+
+<section class="card focus">
+  <h2>Random picture command</h2>
+  <p class="muted">This is the only library random command. <code>/countdown</code> is fixed and cannot be renamed.</p>
+  <form method="post" action="/bot" class="fields">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>
+      Command name (without the slash)
+      <input name="picture_command" value="{{ picture_command }}" maxlength="32" required pattern="[a-z0-9_-]+" autocomplete="off" placeholder="picture">
+    </label>
+    <p class="muted">Lowercase letters, numbers, <code>_</code>, <code>-</code>. Cannot be <code>countdown</code>, <code>prompt</code>, or <code>pictures</code>.</p>
+    <p>Discord will show: <code>/{{ picture_command }}</code> — random library image, optional caption.</p>
+    <div class="actions">
+      <button type="submit">Save command name</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Bot username</h2>
+  {% if status.online %}
+  <p class="status-line"><span class="dot on"></span> {{ status.user_label }}</p>
+  {% else %}
+  <p class="status-line warn"><span class="dot"></span> {{ status.status_line }}</p>
+  {% endif %}
+  <form method="post" action="/bot" class="fields">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="picture_command" value="{{ picture_command }}">
+    <label>
+      New username
+      <input name="username" maxlength="32" autocomplete="off" placeholder="{% if current_name %}{{ current_name }}{% else %}Leave blank to keep{% endif %}">
+    </label>
+    <div class="actions">
+      <button type="submit">Save username</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

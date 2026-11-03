@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Library · Bot desk{% endblock %}
+{% block body %}
+<section class="card">
+  <h1>Library</h1>
+  <p class="muted">One shared media pool for slash commands, emoji reactions, facts, events, and profile photos. PNG, JPEG, GIF, and WebP up to 10MB. GIFs stay animated. Other photos are cropped square when they become the profile photo.</p>
+  <form method="post" action="/library" enctype="multipart/form-data" class="fields">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>
+      Name
+      <input name="name" maxlength="41" required placeholder="party">
+    </label>
+    <label>
+      Picture
+      <input type="file" name="file" accept="image/png,image/jpeg,image/gif,image/webp" required>
+    </label>
+    <button type="submit">Upload</button>
+  </form>
+</section>
+
+{% if images %}
+<section class="thumbs">
+  {% for image in images %}
+  <article class="card thumb">
+    <img src="/media/{{ image.id }}" alt="{{ image.name }}">
+    <h2>{{ image.name }}</h2>
+    <div class="actions">
+      <form method="post" action="/library/{{ image.id }}/avatar">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="quiet" type="submit">Set as profile photo</button>
+      </form>
+      <form method="post" action="/library/{{ image.id }}/delete" data-confirm="Delete {{ image.name }}?">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="danger" type="submit">Delete</button>
+      </form>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% else %}
+<p class="muted">No pictures yet.</p>
+{% endif %}
+{% endblock %}

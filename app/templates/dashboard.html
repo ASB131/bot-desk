@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Overview · Bot desk{% endblock %}
+{% block body %}
+<section class="page-head">
+  <div>
+    <h1>Overview</h1>
+    <p class="muted">
+      {% if status.online %}
+      {{ status.user_label }} · {{ status.latency_ms }} ms
+      {% if status.guild_count %} · {{ status.guild_count }} server{% if status.guild_count != 1 %}s{% endif %}{% endif %}
+      {% else %}
+      {{ status.status_line }}
+      {% endif %}
+    </p>
+  </div>
+  <div class="meta-chips">
+    <span>{{ event_count }} event{% if event_count != 1 %}s{% endif %}</span>
+    <span>{{ image_count }} image{% if image_count != 1 %}s{% endif %}</span>
+  </div>
+</section>
+
+{% if hero %}
+<section class="card focus">
+  <p class="label">Next event</p>
+  <h2>{{ hero.name }}</h2>
+  <p class="countdown-lg" data-countdown="{{ hero.iso }}">…</p>
+  <p class="muted">{{ hero.when }} · {{ hero.status }}</p>
+</section>
+{% else %}
+<section class="card">
+  <h2>No upcoming events</h2>
+  <p class="muted">Schedule a post, countdown, or profile photo change.</p>
+  <div class="actions">
+    <a class="button" href="/events">New event</a>
+  </div>
+</section>
+{% endif %}
+
+<div class="grid two">
+  <section class="card">
+    <h2>Discord</h2>
+    {% if status.online %}
+    <p class="muted">{{ status.channel_count }} channel{% if status.channel_count != 1 %}s{% endif %} the bot can post in.</p>
+    {% endif %}
+    {% if status.invite_url %}
+    <p><a href="{{ status.invite_url }}">Invite bot</a></p>
+    {% endif %}
+    {% if status.online and status.guilds %}
+    <ul class="list compact">
+      {% for guild in status.guilds %}
+      <li>
+        <span class="list-title">{{ guild.name }}</span>
+        <span class="muted">
+          {% if guild.member_count is not none %}{{ guild.member_count }} members · {% endif %}
+          {{ guild.postable_channels }} postable
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% elif status.online %}
+    <p class="muted">Not in any servers yet.</p>
+    {% endif %}
+    <h3>Commands</h3>
+    <ul class="list compact">
+      <li><code>/{{ status.picture_command }}</code> — random image, optional caption</li>
+      <li><code>/countdown</code> — time until next event</li>
+    </ul>
+    <p><a href="/bot">Rename picture command</a></p>
+  </section>
+
+  <section class="card">
+    <h2>Calendar</h2>
+    {% if upcoming %}
+    <ul class="list">
+      {% for item in upcoming %}
+      <li>
+        <span class="list-title">{{ item.name }}</span>
+        <span class="muted">{{ item.when }}</span>
+        <span class="countdown-sm muted" data-countdown="{{ item.iso }}"></span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">Nothing scheduled.</p>
+    {% endif %}
+    {% if jobs %}
+    <h3>Profile photo</h3>
+    <ul class="list compact">
+      {% for job in jobs %}
+      <li>
+        <span class="list-title">{{ job.image }}</span>
+        <span class="muted">{{ job.label }} · {{ job.when }}</span>
+        {% if job.error %}<span class="warn">{{ job.error }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

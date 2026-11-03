@@ -1,0 +1,29 @@
+/* Bot-desk extras on top of site-theme.css */
+code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.92em;
+  background: var(--stripe);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+
+.site-nav a {
+  display: inline-block;
+}
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.meta-chips {
+  display: flex;
+  gap: 8px;
+}
+
+.log-row { padding: 10px 15px; }
+.log-bad { border-color: #ef9a9a; }
+.fact-thumb { max-width: 120px; border-radius: 4px; }

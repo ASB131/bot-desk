@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Prompt · Bot desk{% endblock %}
+{% block body %}
+<section class="card">
+  <h1>Prompt pool</h1>
+  <p class="muted"><code>/prompt</code> posts a random picture from this list. Pictures stay in the library too.</p>
+  <form method="post" action="/prompt/upload" enctype="multipart/form-data" class="fields">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>
+      Name
+      <input name="name" maxlength="41" required placeholder="meme">
+    </label>
+    <label>
+      Picture
+      <input type="file" name="file" accept="image/png,image/jpeg,image/gif,image/webp" required>
+    </label>
+    <button type="submit">Upload to prompt pool</button>
+  </form>
+  {% if library %}
+  <form method="post" action="/prompt/add" class="fields" style="margin-top:1rem">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>
+      Or add from the library
+      <select name="image_id" required>
+        <option value="">Choose a picture</option>
+        {% for image in library %}
+        <option value="{{ image.id }}">{{ image.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button class="quiet" type="submit">Add to prompt pool</button>
+  </form>
+  {% endif %}
+</section>
+
+{% if images %}
+<section class="thumbs">
+  {% for image in images %}
+  <article class="card thumb">
+    <img src="/media/{{ image.id }}" alt="{{ image.name }}">
+    <h2>{{ image.name }}</h2>
+    <form method="post" action="/prompt/{{ image.id }}/remove">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="quiet" type="submit">Remove from pool</button>
+    </form>
+  </article>
+  {% endfor %}
+</section>
+{% else %}
+<p class="muted">No pictures in the prompt pool yet.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#f0f2f5">
+  <title>{% block title %}Bot desk{% endblock %}</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/site-theme.css">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/site-theme.js" defer></script>
+</head>
+<body>
+  <button type="button" id="site-theme-toggle" aria-label="Switch theme" title="Switch theme">
+    <svg class="theme-icon-light" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2"/></svg>
+    <svg class="theme-icon-dark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 14.5A8.5 8.5 0 0 1 9.5 3 7 7 0 1 0 21 14.5z"/></svg>
+  </button>
+
+  <header id="site-header">
+    <a class="site-brand" href="/">Bot desk</a>
+    <nav class="site-nav">
+      <a href="/" {% if path == '/' %}class="active"{% endif %}>Overview</a>
+      <a href="/events" {% if path == '/events' %}class="active"{% endif %}>Events</a>
+      <a href="/library" {% if path == '/library' %}class="active"{% endif %}>Library</a>
+      <a href="/facts" {% if path == '/facts' %}class="active"{% endif %}>Facts</a>
+      <a href="/scheduled-pictures" {% if path == '/scheduled-pictures' %}class="active"{% endif %}>Pictures</a>
+      <a href="/reactions" {% if path == '/reactions' %}class="active"{% endif %}>Reactions</a>
+      <a href="/logs" {% if path == '/logs' %}class="active"{% endif %}>Activity</a>
+      <a href="/bot" {% if path == '/bot' %}class="active"{% endif %}>Commands</a>
+      <a href="/avatar" {% if path == '/avatar' %}class="active"{% endif %}>Profile photo</a>
+      <a href="/settings" {% if path == '/settings' %}class="active"{% endif %}>Settings</a>
+    </nav>
+    <div class="header-actions">
+      {% if status.guilds %}
+      <form method="post" action="/server" class="server-form">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <select name="guild_id" aria-label="Server" onchange="this.form.submit()">
+          {% for guild in status.guilds %}
+          <option value="{{ guild.id }}" {% if guild.id == active_guild_id %}selected{% endif %}>{{ guild.name }}</option>
+          {% endfor %}
+        </select>
+      </form>
+      {% endif %}
+      <span class="status-line"><span class="dot {% if status.online %}on{% endif %}"></span></span>
+      <form method="post" action="/logout">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="quiet" type="submit">Log out</button>
+      </form>
+    </div>
+  </header>
+  <div class="header-divider"></div>
+
+  <main class="page-wrap">
+    <p id="clock" data-timezone="{{ tz_name }}">{{ tz_name }}</p>
+    {% if status.guilds %}
+    <p class="muted">Settings for <strong>{{ active_guild_name }}</strong>. Events, facts, scheduled pictures, and reactions are per server. Library images are shared.</p>
+    {% endif %}
+    {% if flash %}
+    <p class="flash {{ flash.level }}" role="status">{{ flash.text }}</p>
+    {% endif %}
+    {% if status.notice %}
+    <p class="flash error" role="status">{{ status.notice }}</p>
+    {% endif %}
+    {% block body %}{% endblock %}
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

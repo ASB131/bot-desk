@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Scheduled pictures · Bot desk{% endblock %}
+{% block body %}
+<section class="page-head">
+  <h1>Scheduled pictures</h1>
+  <p class="muted">Post one random image from the shared <a href="/library">Library</a> on a timer. Each picture is used once before any repeat—the same shuffle deck as <code>/picture</code> and facts attachments.</p>
+</section>
+
+<section class="card">
+  <h2>Schedule</h2>
+  {% if config.last_error %}<p class="warn">{{ config.last_error }}</p>{% endif %}
+  {% if library_count == 0 %}
+  <p class="warn">The library is empty. <a href="/library">Upload pictures</a> before enabling this.</p>
+  {% else %}
+  <p class="muted">{{ library_count }} picture{{ 's' if library_count != 1 else '' }} in the library pool.</p>
+  {% endif %}
+  <form method="post" action="/scheduled-pictures" class="fields">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="check">
+      <input type="checkbox" name="enabled" value="1" {% if config.enabled %}checked{% endif %}>
+      Enabled
+    </label>
+    <label>
+      Channel
+      <select name="channel_id">
+        <option value="">Choose a channel</option>
+        {% for channel in channels %}
+        <option value="{{ channel.id }}" {% if channel_pick == channel.id %}selected{% endif %}>{{ channel.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Or channel ID
+      <input name="channel_override" value="{{ channel_override }}" inputmode="numeric" autocomplete="off">
+    </label>
+    <div class="split">
+      <label>
+        Shortest wait (minutes)
+        <input type="number" name="min_minutes" min="1" max="20160" value="{{ config.min_minutes }}" required>
+      </label>
+      <label>
+        Longest wait (minutes)
+        <input type="number" name="max_minutes" min="1" max="20160" value="{{ config.max_minutes }}" required>
+      </label>
+    </div>
+    <p class="muted">Next post: <strong>{{ next_label }}</strong> ({{ tz_name }})</p>
+    <label class="check">
+      <input type="checkbox" name="reset_next" value="1" checked>
+      Pick a new random time when saving (uses the min/max above)
+    </label>
+    <div class="actions">
+      <button type="submit">Save schedule</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

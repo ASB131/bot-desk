@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Reactions · Bot desk{% endblock %}
+{% block body %}
+<section class="card">
+  <h1>Emoji reactions</h1>
+  <p class="muted">When someone sends a message containing one of these emojis, the bot replies with a <strong>random picture from the library</strong>. Upload pictures on the Library tab. Turn on <strong>Message Content Intent</strong> in the Developer Portal.</p>
+  <form method="post" action="/reactions" class="fields">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>
+      Emoji
+      <input name="emoji" maxlength="64" required placeholder="🔥 or &lt;:name:123&gt;">
+    </label>
+    <button type="submit">Add emoji</button>
+  </form>
+</section>
+
+<section>
+  <h2>Emojis</h2>
+  {% if not rules %}
+  <p class="muted">No emojis yet.</p>
+  {% else %}
+  <div class="stack">
+    {% for rule in rules %}
+    <article class="card row-card">
+      <div>
+        <h3>{{ rule.emoji }}</h3>
+        <p class="muted">Random picture from the library</p>
+      </div>
+      <form method="post" action="/reactions/{{ rule.id }}/delete" data-confirm="Remove this emoji?">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="danger" type="submit">Delete</button>
+      </form>
+    </article>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

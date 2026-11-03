@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Activity · Bot desk{% endblock %}
+{% block body %}
+<section class="card">
+  <h1>Activity log</h1>
+  <p class="muted">Recent commands, scheduled posts, emoji reactions, and panel actions. Up to 500 entries are kept.</p>
+</section>
+{% if rows %}
+<section class="stack log-stack">
+  {% for row in rows %}
+  <article class="card log-row {% if not row.item.ok %}log-bad{% endif %}">
+    <p class="label">{{ row.item.kind }} · {{ row.when }}</p>
+    <p><strong>{{ row.item.summary }}</strong></p>
+    {% if row.item.guild %}
+    <p class="muted">{{ row.item.guild }}{% if row.item.channel %} · #{{ row.item.channel }}{% endif %}</p>
+    {% elif row.item.channel %}
+    <p class="muted">Channel {{ row.item.channel }}</p>
+    {% endif %}
+    {% if row.item.detail %}<p class="muted">{{ row.item.detail }}</p>{% endif %}
+  </article>
+  {% endfor %}
+</section>
+{% else %}
+<p class="muted">No activity yet.</p>
+{% endif %}
+{% endblock %}

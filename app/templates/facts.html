@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Facts · Bot desk{% endblock %}
+{% block body %}
+<section class="page-head">
+  <h1>Facts</h1>
+  <p class="muted">Text facts on a timer. Pictures come from the shared <a href="/library">Library</a>, not per fact.</p>
+</section>
+
+<section class="card">
+  <h2>Schedule</h2>
+  {% if config.last_error %}<p class="warn">{{ config.last_error }}</p>{% endif %}
+  <form method="post" action="/facts" class="fields">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="check">
+      <input type="checkbox" name="enabled" value="1" {% if config.enabled %}checked{% endif %}>
+      Enabled
+    </label>
+    <label>
+      Channel
+      <select name="channel_id">
+        <option value="">Choose a channel</option>
+        {% for channel in channels %}
+        <option value="{{ channel.id }}" {% if channel_pick == channel.id %}selected{% endif %}>{{ channel.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Or channel ID
+      <input name="channel_override" value="{{ channel_override }}" inputmode="numeric" autocomplete="off">
+    </label>
+    <div class="split">
+      <label>
+        Shortest wait (minutes)
+        <input type="number" name="min_minutes" min="1" max="20160" value="{{ config.min_minutes }}" required>
+      </label>
+      <label>
+        Longest wait (minutes)
+        <input type="number" name="max_minutes" min="1" max="20160" value="{{ config.max_minutes }}" required>
+      </label>
+    </div>
+    <label class="check">
+      <input type="checkbox" name="attach_library" value="1" {% if config.attach_library_image %}checked{% endif %}>
+      Attach a random library picture with each fact (same pool as <code>/picture</code>)
+    </label>
+    <p class="muted">Next post: <strong>{{ next_label }}</strong> ({{ tz_name }})</p>
+    <label class="check">
+      <input type="checkbox" name="reset_next" value="1" checked>
+      Pick a new random time when saving (uses the min/max above)
+    </label>
+    <div class="actions">
+      <button type="submit">Save schedule</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>{% if editing %}Edit fact{% else %}Add fact{% endif %}</h2>
+  <form method="post" action="{% if editing %}/facts/{{ editing.id }}/update{% else %}/facts/add{% endif %}" class="fields">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>
+      Text
+      <textarea name="body" rows="3" maxlength="1800" required>{% if editing %}{{ editing.body }}{% endif %}</textarea>
+    </label>
+    <div class="actions">
+      <button type="submit">{% if editing %}Save changes{% else %}Add fact{% endif %}</button>
+      {% if editing %}
+      <a class="button quiet" href="/facts">Cancel</a>
+      {% endif %}
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Import many</h2>
+  <form method="post" action="/facts/bulk" class="fields">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>
+      One fact per line
+      <textarea name="bulk" rows="4" placeholder="Octopuses have three hearts."></textarea>
+    </label>
+    <button type="submit">Import</button>
+  </form>
+</section>
+
+<section>
+  <h2>Saved facts ({{ facts|length }})</h2>
+  {% if not facts %}
+  <p class="muted">No facts yet.</p>
+  {% else %}
+  <div class="stack">
+    {% for fact in facts %}
+    <article class="card row-card">
+      <p class="message">{{ fact.body }}</p>
+      <div class="actions">
+        <a class="button quiet" href="/facts?edit={{ fact.id }}">Edit</a>
+        <form method="post" action="/facts/{{ fact.id }}/delete" data-confirm="Remove this fact?">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="danger" type="submit">Delete</button>
+        </form>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

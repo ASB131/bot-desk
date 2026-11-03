@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Profile photo · Bot desk{% endblock %}
+{% block body %}
+<section class="card">
+  <h1>Weekly profile photo</h1>
+  <p class="muted">Pick a day and a time. The bot changes its photo then. If the server was off at that minute, it still changes later the same day. One change per weekday. A new schedule made after today’s time waits until next week.</p>
+  {% if not images %}
+  <p>Upload a picture in the library first.</p>
+  {% else %}
+  <form method="post" action="/avatar" class="fields">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>
+      Picture
+      <select name="image_id" required>
+        <option value="">Choose a picture</option>
+        {% for image in images %}
+        <option value="{{ image.id }}">{{ image.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="split">
+      <label>
+        Day
+        <select name="weekday" required>
+          {% for day in weekdays %}
+          <option value="{{ loop.index0 }}">{{ day }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Time
+        <input type="time" name="clock" value="09:00" required>
+      </label>
+    </div>
+    <button type="submit">Save weekly change</button>
+  </form>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Schedule</h2>
+  {% if not jobs %}
+  <p class="muted">No weekly change yet. You can still set a photo from the library, or attach one to an event.</p>
+  {% else %}
+  <div class="stack">
+    {% for item in jobs %}
+    <article class="card row-card">
+      <div>
+        <h3>{{ weekday_name(item.job.weekday) }} at {{ item.clock }}</h3>
+        <p>{{ item.job.image_name }}</p>
+        <p class="muted">{{ item.when }}{% if item.job.last_run_on %} · last run {{ item.job.last_run_on }}{% endif %}</p>
+        {% if item.job.last_error %}<p class="warn">{{ item.job.last_error }}</p>{% endif %}
+      </div>
+      <form method="post" action="/avatar/{{ item.job.id }}/delete" data-confirm="Remove this weekly change?">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="danger" type="submit">Remove</button>
+      </form>
+    </article>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
