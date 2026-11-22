@@ -132,6 +132,39 @@ def invite_url() -> str:
     )
 
 
+async def _guild_text_channels(guild: discord.Guild) -> list[discord.TextChannel]:
+    """Text channels the bot can target; tolerates new Discord channel types discord.py cannot parse yet."""
+    try:
+        fetched = await guild.fetch_channels()
+        return [channel for channel in fetched if isinstance(channel, discord.TextChannel)]
+    except (discord.HTTPException, discord.InvalidData) as exc:
+        log.warning(
+            "Could not list every channel in %s (%s); listing text channels only",
+            guild.name,
+            exc,
+        )
+    try:
+        payload = await bot.http.get_guild_channels(guild.id)
+    except discord.HTTPException:
+        return list(guild.text_channels)
+    text_ids = [int(row["id"]) for row in payload if row.get("type") == 0]
+    channels: list[discord.TextChannel] = []
+    for channel_id in text_ids:
+        cached = guild.get_channel(channel_id)
+        if isinstance(cached, discord.TextChannel):
+            channels.append(cached)
+            continue
+        try:
+            resolved = await guild.fetch_channel(channel_id)
+        except (discord.HTTPException, discord.InvalidData):
+            continue
+        if isinstance(resolved, discord.TextChannel):
+            channels.append(resolved)
+    if channels:
+        return channels
+    return list(guild.text_channels)
+
+
 async def refresh_channels(*, force: bool = False) -> None:
     global _last_channel_refresh
     if not bot.is_ready() or bot.user is None:
@@ -149,11 +182,7 @@ async def refresh_channels(*, force: bool = False) -> None:
                 me = await guild.fetch_member(bot.user.id)
             except discord.HTTPException:
                 me = None
-        try:
-            raw_channels = await guild.fetch_channels()
-        except discord.HTTPException:
-            log.warning("Could not fetch channels for %s; using cache", guild.name)
-            raw_channels = list(guild.channels)
+        raw_channels = await _guild_text_channels(guild)
         postable = 0
         for channel in raw_channels:
             if not isinstance(channel, discord.TextChannel):
